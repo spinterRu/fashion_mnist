@@ -1,3 +1,7 @@
+# -*- coding: utf-8 -*-
+"""
+https://becominghuman.ai/data-augmentation-on-gpu-in-tensorflow-13d14ecf2b19
+"""
 import tensorflow as tf
 from tensorflow.python.keras.layers import Conv2D, Dense, Flatten, MaxPooling2D
 from tensorflow.python.keras import backend as K
@@ -7,6 +11,8 @@ from tensorflow.contrib.opt import NadamOptimizer
 from tensorflow.examples.tutorials.mnist import input_data
 import matplotlib.pyplot as plt
 import numpy as np
+import data_augmentation as da
+
 
 def RRelu(x):
     rand = tf.Variable(tf.random_uniform([]) * 0.3 + 0.1, dtype=tf.float32)
@@ -40,6 +46,7 @@ img = tf.placeholder(tf.float32, shape=(None, 28, 28, 1))
 
 labels = tf.placeholder(tf.float32, shape=(None, 10))
 lr = tf.placeholder(tf.float32)
+# x_image = tf.reshape(img, [-1, 28, 28, 1])
 
 # first 3 convolutions approximate Conv(7,7):
 layer = conv_layer(img, 64)
@@ -85,9 +92,9 @@ def accuracy(data, n):
 
 initial_learning_rate = 0.001
 cumulative_loss = 0.0
-BATCH_SIZE = 60
+BATCH_SIZE = 20
 TRAIN_SIZE = 60000
-NUM_EPOCHS = 150
+NUM_EPOCHS = 100
 EPOCH_SIZE = TRAIN_SIZE / BATCH_SIZE
 num_iterations = int(NUM_EPOCHS * EPOCH_SIZE)
 
@@ -98,11 +105,12 @@ with sess.as_default():
         batch = mnist_data.train.next_batch(BATCH_SIZE)
         train, train_labels = da.augment_data(batch[0], batch[1], use_random_zoom=False, use_random_shift=False)
 
-        _, loss_val = sess.run([train_step, loss], feed_dict={img: batch[0], 
-                               labels: batch[1], is_train: True, lr: current_learning_rate})
+        _, loss_val = sess.run([train_step, loss], feed_dict={img: train,
+                                                              labels: train_labels, is_train: True,
+                                                              lr: current_learning_rate})
         cumulative_loss = cumulative_loss + loss_val
-        if i % 2000 == 0:
-            print(str(cumulative_loss / 2000.0))
+        if i % EPOCH_SIZE == 0:
+            print(str(cumulative_loss / EPOCH_SIZE))
             cumulative_loss = 0.0
         if i % (10 * EPOCH_SIZE) == 0:
             test_acc = accuracy(mnist_data.test, 100)
